@@ -166,4 +166,66 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     }
 })
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken };
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+        
+    const user = await User.findById(req.user._id);
+    const isPasswordCorrect = await user.comparePassword(currentPassword)
+    if (!isPasswordCorrect) {
+        throw new ApiError(400, "Current password is incorrect");
+    }
+    user.password = newPassword;
+    await user.save({validateBeforeSave:false});
+
+    return res.status(200).json(
+        new ApiResponse(200, {}, "Password changed successfully")
+    );
+})
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+    return res.status(200).json(
+        new ApiResponse(200, req.user, "Current user fetched successfully")
+    );
+})
+
+const updateAccountDetails = asyncHandler(async (req, res) => {
+    if(!req.user){
+        throw new ApiError(401, "Unauthorized access");
+    }
+
+    const { bio, avatarUrl } = req.body;
+    if (!bio && !avatarUrl) {
+        throw new ApiError(400, "At least one field is required");
+    }
+    const updates = {};
+    if (bio !== undefined) updates.bio = bio;
+    if (avatarUrl !== undefined) updates.avatarUrl = avatarUrl;
+
+    const user = await User.findByIdAndUpdate(req.user._id,
+        {
+        $set: updates
+    },
+    {
+      new: true,
+    }
+    ).select("-password");
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+    return res.status(200).json(
+      new ApiResponse(200, user, "User details updated successfully")
+    );
+})
+
+const getUserProfile = asyncHandler(async (req, res) => {
+    const { username } = req.params;
+    const user =  await User.findOne({ username }).select("-password -refreshToken");
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+    return res.status(200).json(
+        new ApiResponse(200, user, "User profile fetched successfully")
+    );
+})
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, getUserProfile };
