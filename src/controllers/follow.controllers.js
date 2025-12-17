@@ -69,7 +69,9 @@ const unfollowUser = asyncHandler (async (req, res) => {
 const getFollowers = asyncHandler (async (req, res) => {
     const { userId } = req.params;
     const followers = await Follow.find({ following: userId }).populate("follower", "username avatarUrl");
-    res.json(followers.map(f => f.follower));
+    let followerlist = followers.map(f => f.follower)
+    // res.json(followerlist.length);
+    res.json(followerlist);
 })
 
 const getFollowing = asyncHandler (async (req, res) => {
